@@ -1,3 +1,4 @@
+const fp = require('fastify-plugin')
 const get = require('lodash.get')
 
 const UNSAMPLED_ROOT = 'UNSAMPLED'
@@ -31,9 +32,9 @@ function isInvalidRootOption (options) {
   return false
 }
 
-const gtrace = gtraceOptions => (fastify, options, done) => {
+function plugin (fastify, options, next) {
   let trace = null
-  const { traceApiOptions, tracePluginOptions } = gtraceOptions
+  const { traceApiOptions, tracePluginOptions } = options
   trace = require('@google-cloud/trace-agent').start(traceApiOptions || {})
 
   fastify.addHook('onRequest', (req, reply, done) => {
@@ -149,7 +150,10 @@ const gtrace = gtraceOptions => (fastify, options, done) => {
     done()
   })
 
-  done()
+  next()
 }
 
-module.exports = gtrace
+module.exports = fp(plugin, {
+  fastify: '>= 1.0.0',
+  name: 'fastify-gcloud-trace'
+})
