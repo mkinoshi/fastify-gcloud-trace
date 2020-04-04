@@ -1,64 +1,123 @@
 const get = require('lodash.get');
 
-export default gtrace = trace => (fastify, options, done) => {
-  const isMonitoringEnabled = trace;
+const NON_SAMPLED_ROOT = 'UNSAMPLED';
+
+function isRealSpan(span) {
+  return get(span, 'type', 'NON_SAMPLED_ROOT') !== NON_SAMPLED_ROOT;
+}
+
+function buildRootOption(req, tracePluginOptions) {
+  const url = get(req.raw, 'client.parser.incoming.originalUrl', null);
+  const method = get(req.raw, 'client.parser.incoming.method', null);
+
+  return {
+    name: tracePluginOptions.nameOverride ? tracePluginOptions.nameOverride(req) : url,
+    url,
+    method,
+  };
+}
+
+function isInvalidRootOption(options) {
+  if (!options.url || typeof options.url !== 'string') {
+    console.warn('The url that is passed to rootSpanOption is not string');
+    return true;
+  }
+
+  if (!options.method || typeof options.url !== 'string') {
+    console.warn('The method that is passed to rootSpanOption is not string');
+    return true;
+  }
+
+  return false;
+}
+
+const gtrace = gtraceOptions => (fastify, options, done) => {
+  let trace = null;
+  const {traceApiOptions, tracePluginOptions} = gtraceOptions;
+  trace = require('@google-cloud/trace-agent').start(traceApiOptions || {});
 
   fastify.addHook('onRequest', (req, reply, done) => {
-    if (isMonitoringEnabled) {
-      trace.runInRootSpan(
-        {
-          name: get(req.raw, 'client.parser.incoming.originalUrl', 'URL Undetected Request'),
-        },
-        span => {
+    if (trace) {
+      const rootSpanOption = buildRootOption(req, tracePluginOptions || {});
+      if (isInvalidRootOption(rootSpanOption)) {
+        done();
+        return;
+      }
+      trace.runInRootSpan(rootSpanOption, span => {
+        if (isRealSpan(span)) {
           req.rootSpan = span;
+          req.isRealSpan = true;
           req.onRequestSpan = req.rootSpan.createChildSpan({name: 'onRequest'});
-          done();
-        },
-      );
+        }
+        done();
+      });
     } else {
       done();
     }
   });
 
-  fastify.addHook('preHandler', (req, reply, done) => {
+  fastify.addHook('preParsing', (req, reply, done) => {
     if (req.onRequestSpan) {
       req.onRequestSpan.endSpan();
     }
 
-    if (req.rootSpan) {
-      req.onPreHandlerSpan = req.rootSpan.createChildSpan({name: 'preHandler'});
+    if (req.isRealSpan) {
+      req.parsing = req.rootSpan.createChildSpan({name: 'Parsing'});
     }
     done();
   });
 
   fastify.addHook('preValidation', (req, reply, done) => {
-    if (req.onPreHandlerSpan) {
-      req.onPreHandlerSpan.endSpan();
+    if (req.parsing) {
+      req.parsing.endSpan();
     }
 
-    if (req.rootSpan) {
-      req.preValidation = req.rootSpan.createChildSpan({name: 'preValidation'});
+    if (req.isRealSpan) {
+      req.validation = req.rootSpan.createChildSpan({name: 'Validation'});
+    }
+    done();
+  });
+
+  fastify.addHook('preHandler', (req, reply, done) => {
+    if (req.validation) {
+      req.validation.endSpan();
+    }
+
+    if (req.isRealSpan) {
+      req.handler = req.rootSpan.createChildSpan({name: 'Handler'});
     }
     done();
   });
 
   fastify.addHook('preSerialization', (req, reply, payload, done) => {
-    if (req.preValidation) {
-      req.preValidation.endSpan();
+    if (req.handler) {
+      req.handler.endSpan();
     }
 
-    if (req.rootSpan) {
-      req.preSerialization = req.rootSpan.createChildSpan({name: 'preSerialization'});
+    if (req.isRealSpan) {
+      req.serialization = req.rootSpan.createChildSpan({name: 'Serialization'});
     }
     done();
   });
 
   fastify.addHook('onError', (req, reply, error, done) => {
-    if (req.preSerialization) {
-      req.preSerialization.endSpan();
+    if (req.parsing) {
+      req.parsing.endSpan();
     }
 
-    if (req.rootSpan) {
+    if (req.validation) {
+      req.validation.endSpan();
+    }
+
+    if (req.handler) {
+      req.handler.endSpan();
+    }
+
+    if (req.serialization) {
+      req.serialization.endSpan();
+    }
+
+    if (req.isRealSpan) {
       req.onError = req.rootSpan.createChildSpan({name: 'onError'});
     }
     done();
@@ -69,7 +128,11 @@ export default gtrace = trace => (fastify, options, done) => {
       req.onError.endSpan();
     }
 
-    if (req.rootSpan) {
+    if (req.serialization) {
+      req.serialization.endSpan();
+    }
+
+    if (req.isRealSpan) {
       req.onSend = req.rootSpan.createChildSpan({name: 'onSend'});
     }
     done();
@@ -80,7 +143,7 @@ export default gtrace = trace => (fastify, options, done) => {
       req.onSend.endSpan();
     }
 
-    if (req.rootSpan) {
+    if (req.isRealSpan) {
       req.rootSpan.endSpan();
     }
     done();
@@ -88,3 +151,5 @@ export default gtrace = trace => (fastify, options, done) => {
 
   done();
 };
+
+module.exports = gtrace;
