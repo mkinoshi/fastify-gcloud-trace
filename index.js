@@ -33,9 +33,8 @@ function isInvalidRootOption (options) {
 }
 
 function plugin (fastify, options, next) {
-  let trace = null
   const { traceApiOptions, tracePluginOptions } = options
-  trace = require('@google-cloud/trace-agent').start(traceApiOptions || {})
+  const trace = tracePluginOptions.enabled ? require('@google-cloud/trace-agent').start(traceApiOptions || {}) : null
 
   fastify.addHook('onRequest', (req, reply, done) => {
     if (trace) {
