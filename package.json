@@ -17,11 +17,11 @@
   },
   "dependencies": {
     "@google-cloud/trace-agent": "^4.2.5",
-    "lodash.get": "^4.4.2",
-    "standard": "^14.3.3"
+    "lodash.get": "^4.4.2"
   },
   "devDependencies": {
     "rewire": "^5.0.0",
-    "tap": "^14.10.7"
+    "tap": "^14.10.7",
+    "standard": "^14.3.3"
   }
 }
