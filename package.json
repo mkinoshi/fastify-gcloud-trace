@@ -6,6 +6,9 @@
   "author": "Makoto Kinoshita",
   "license": "MIT",
   "private": false,
+  "engines": {
+    "node": ">=8.0.0"
+  },
   "scripts": {
     "test": "tap 'test/**/*.js'",
     "test-ci": "tap --cov 'test/**/*.js'",
