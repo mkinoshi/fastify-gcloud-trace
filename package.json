@@ -4,11 +4,20 @@
   "description": "Google Cloud Trace API Connector for Fastify",
   "main": "index.js",
   "author": "Makoto Kinoshita",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mkinoshi/fastify-gcloud-trace.git"
+  },
+  "keywords": ["plugin", "stackdriver", "google cloud", "trace", "fastify"],
   "license": "MIT",
   "private": false,
   "engines": {
     "node": ">=8.0.0"
   },
+  "bugs": {
+    "url": "https://github.com/mkinoshi/fastify-gcloud-trace/issues"
+  },
+  "homepage": "https://github.com/mkinoshi/fastify-gcloud-trace#readme",
   "scripts": {
     "test": "tap 'test/**/*.js'",
     "test-ci": "tap --cov 'test/**/*.js'",
