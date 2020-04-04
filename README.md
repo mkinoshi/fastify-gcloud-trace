@@ -8,7 +8,7 @@ Google Cloud Trace API Connector for Fastify
 
 This plugin measures how long each event takes in one request, and generates trace results. Here is an example trace result that you can find on Google Cloud Console:
 
-![IMAGE](quiver-image-url/7B715F19CD592DF76C12A5B1C5F0A2E9.jpg =797x295)
+![IMAGE](https://user-images.githubusercontent.com/10353744/78461526-240e8e00-76a0-11ea-81f6-08acae83ebef.png)
 
 ## Install
 
