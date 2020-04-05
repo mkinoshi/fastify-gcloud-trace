@@ -1,176 +1,176 @@
-const fp = require('fastify-plugin')
-const get = require('lodash.get')
+const fp = require('fastify-plugin');
+const get = require('lodash.get');
 
-const UNSAMPLED_ROOT = 'UNSAMPLED'
+const UNSAMPLED_ROOT = 'UNSAMPLED';
 
 const labels = {
   HTTP_METHOD_LABEL_KEY: '/http/method',
   HTTP_RESPONSE_CODE_LABEL_KEY: '/http/status_code',
   HTTP_SOURCE_IP: '/http/source/ip'
-}
+};
 
 const customLabels = {
   STATUS_CODE: 'status_code'
+};
+
+function isRealSpan(span) {
+  return get(span, 'type', UNSAMPLED_ROOT) !== UNSAMPLED_ROOT;
 }
 
-function isRealSpan (span) {
-  return get(span, 'type', UNSAMPLED_ROOT) !== UNSAMPLED_ROOT
-}
-
-function buildRootOption (req, tracePluginOptions) {
-  const url = get(req.raw, 'client.parser.incoming.originalUrl', null)
-  const method = get(req.raw, 'client.parser.incoming.method', null)
+function buildRootOption(req, tracePluginOptions) {
+  const url = get(req.raw, 'client.parser.incoming.originalUrl', null);
+  const method = get(req.raw, 'client.parser.incoming.method', null);
 
   return {
     name: tracePluginOptions.nameOverride ? tracePluginOptions.nameOverride(req) : url,
     url,
     method
-  }
+  };
 }
 
-function isInvalidRootOption (options) {
+function isInvalidRootOption(options) {
   if (!options.url || typeof options.url !== 'string') {
-    console.warn('The url that is passed to rootSpanOption is not string')
-    return true
+    console.warn('The url that is passed to rootSpanOption is not string');
+    return true;
   }
 
   if (!options.method || typeof options.method !== 'string') {
-    console.warn('The method that is passed to rootSpanOption is not string')
-    return true
+    console.warn('The method that is passed to rootSpanOption is not string');
+    return true;
   }
 
-  return false
+  return false;
 }
 
-function plugin (fastify, options, next) {
-  const { traceApiOptions, tracePluginOptions = { enabled: true } } = options
+function plugin(fastify, options, next) {
+  const {traceApiOptions, tracePluginOptions = {enabled: true}} = options;
   const trace = tracePluginOptions.enabled
     ? require('@google-cloud/trace-agent').start(traceApiOptions || {})
-    : null
+    : null;
 
-  fastify.decorateRequest('rootSpan', '')
+  fastify.decorateRequest('rootSpan', '');
   fastify.addHook('onRequest', (req, reply, done) => {
     if (trace) {
-      const rootSpanOption = buildRootOption(req, tracePluginOptions || {})
+      const rootSpanOption = buildRootOption(req, tracePluginOptions || {});
       if (isInvalidRootOption(rootSpanOption)) {
-        done()
-        return
+        done();
+        return;
       }
 
       trace.runInRootSpan(rootSpanOption, span => {
         if (isRealSpan(span)) {
-          req.rootSpan = span
-          req.rootSpan.addLabel(labels.HTTP_METHOD_LABEL_KEY, rootSpanOption.method)
-          req.rootSpan.addLabel(labels.HTTP_SOURCE_IP, req.ip)
+          req.rootSpan = span;
+          req.rootSpan.addLabel(labels.HTTP_METHOD_LABEL_KEY, rootSpanOption.method);
+          req.rootSpan.addLabel(labels.HTTP_SOURCE_IP, req.ip);
 
-          req.onRequestSpan = req.rootSpan.createChildSpan({ name: 'onRequest' })
+          req.onRequestSpan = req.rootSpan.createChildSpan({name: 'onRequest'});
         }
-        done()
-      })
+        done();
+      });
     } else {
-      done()
+      done();
     }
-  })
+  });
 
   fastify.addHook('preParsing', (req, reply, done) => {
     if (req.onRequestSpan) {
-      req.onRequestSpan.endSpan()
+      req.onRequestSpan.endSpan();
     }
 
     if (req.rootSpan) {
-      req.parsing = req.rootSpan.createChildSpan({ name: 'Parsing' })
+      req.parsing = req.rootSpan.createChildSpan({name: 'Parsing'});
     }
-    done()
-  })
+    done();
+  });
 
   fastify.addHook('preValidation', (req, reply, done) => {
     if (req.parsing) {
-      req.parsing.endSpan()
+      req.parsing.endSpan();
     }
 
     if (req.rootSpan) {
-      req.validation = req.rootSpan.createChildSpan({ name: 'Validation' })
+      req.validation = req.rootSpan.createChildSpan({name: 'Validation'});
     }
-    done()
-  })
+    done();
+  });
 
   fastify.addHook('preHandler', (req, reply, done) => {
     if (req.validation) {
-      req.validation.endSpan()
+      req.validation.endSpan();
     }
 
     if (req.rootSpan) {
-      req.handler = req.rootSpan.createChildSpan({ name: 'Handler' })
+      req.handler = req.rootSpan.createChildSpan({name: 'Handler'});
     }
-    done()
-  })
+    done();
+  });
 
   fastify.addHook('preSerialization', (req, reply, payload, done) => {
     if (req.handler) {
-      req.handler.endSpan()
+      req.handler.endSpan();
     }
 
     if (req.rootSpan) {
-      req.serialization = req.rootSpan.createChildSpan({ name: 'Serialization' })
+      req.serialization = req.rootSpan.createChildSpan({name: 'Serialization'});
     }
-    done()
-  })
+    done();
+  });
 
   fastify.addHook('onError', (req, reply, error, done) => {
     if (req.parsing) {
-      req.parsing.endSpan()
+      req.parsing.endSpan();
     }
 
     if (req.validation) {
-      req.validation.endSpan()
+      req.validation.endSpan();
     }
 
     if (req.handler) {
-      req.handler.endSpan()
+      req.handler.endSpan();
     }
 
     if (req.serialization) {
-      req.serialization.endSpan()
+      req.serialization.endSpan();
     }
 
     if (req.rootSpan) {
-      req.onError = req.rootSpan.createChildSpan({ name: 'onError' })
+      req.onError = req.rootSpan.createChildSpan({name: 'onError'});
     }
-    done()
-  })
+    done();
+  });
 
   fastify.addHook('onSend', (req, reply, payload, done) => {
     if (req.onError) {
-      req.onError.endSpan()
+      req.onError.endSpan();
     }
 
     if (req.serialization) {
-      req.serialization.endSpan()
+      req.serialization.endSpan();
     }
 
     if (req.rootSpan) {
-      req.onSend = req.rootSpan.createChildSpan({ name: 'onSend' })
+      req.onSend = req.rootSpan.createChildSpan({name: 'onSend'});
     }
-    done()
-  })
+    done();
+  });
 
   fastify.addHook('onResponse', (req, reply, done) => {
     if (req.onSend) {
-      req.onSend.endSpan()
+      req.onSend.endSpan();
     }
 
     if (req.rootSpan) {
-      req.rootSpan.addLabel(labels.HTTP_RESPONSE_CODE_LABEL_KEY, reply.statusCode) // It is used internally on Stackdriver, but does not show under label for some reason
-      req.rootSpan.addLabel(customLabels.STATUS_CODE, reply.statusCode)
-      req.rootSpan.endSpan()
+      req.rootSpan.addLabel(labels.HTTP_RESPONSE_CODE_LABEL_KEY, reply.statusCode); // It is used internally on Stackdriver, but does not show under label for some reason
+      req.rootSpan.addLabel(customLabels.STATUS_CODE, reply.statusCode);
+      req.rootSpan.endSpan();
     }
-    done()
-  })
+    done();
+  });
 
-  next()
+  next();
 }
 
 module.exports = fp(plugin, {
-  fastify: '>= 1.0.0',
+  fastify: '>= 2.0.0',
   name: 'fastify-gcloud-trace'
-})
+});
