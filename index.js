@@ -48,6 +48,7 @@ function plugin (fastify, options, next) {
     ? require('@google-cloud/trace-agent').start(traceApiOptions || {})
     : null
 
+  fastify.decorateRequest('rootSpan', '')
   fastify.addHook('onRequest', (req, reply, done) => {
     if (trace) {
       const rootSpanOption = buildRootOption(req, tracePluginOptions || {})
@@ -62,7 +63,6 @@ function plugin (fastify, options, next) {
           req.rootSpan.addLabel(labels.HTTP_METHOD_LABEL_KEY, rootSpanOption.method)
           req.rootSpan.addLabel(labels.HTTP_SOURCE_IP, req.ip)
 
-          req.isRealSpan = true
           req.onRequestSpan = req.rootSpan.createChildSpan({ name: 'onRequest' })
         }
         done()
@@ -77,7 +77,7 @@ function plugin (fastify, options, next) {
       req.onRequestSpan.endSpan()
     }
 
-    if (req.isRealSpan) {
+    if (req.rootSpan) {
       req.parsing = req.rootSpan.createChildSpan({ name: 'Parsing' })
     }
     done()
@@ -88,7 +88,7 @@ function plugin (fastify, options, next) {
       req.parsing.endSpan()
     }
 
-    if (req.isRealSpan) {
+    if (req.rootSpan) {
       req.validation = req.rootSpan.createChildSpan({ name: 'Validation' })
     }
     done()
@@ -99,7 +99,7 @@ function plugin (fastify, options, next) {
       req.validation.endSpan()
     }
 
-    if (req.isRealSpan) {
+    if (req.rootSpan) {
       req.handler = req.rootSpan.createChildSpan({ name: 'Handler' })
     }
     done()
@@ -110,7 +110,7 @@ function plugin (fastify, options, next) {
       req.handler.endSpan()
     }
 
-    if (req.isRealSpan) {
+    if (req.rootSpan) {
       req.serialization = req.rootSpan.createChildSpan({ name: 'Serialization' })
     }
     done()
@@ -133,7 +133,7 @@ function plugin (fastify, options, next) {
       req.serialization.endSpan()
     }
 
-    if (req.isRealSpan) {
+    if (req.rootSpan) {
       req.onError = req.rootSpan.createChildSpan({ name: 'onError' })
     }
     done()
@@ -148,7 +148,7 @@ function plugin (fastify, options, next) {
       req.serialization.endSpan()
     }
 
-    if (req.isRealSpan) {
+    if (req.rootSpan) {
       req.onSend = req.rootSpan.createChildSpan({ name: 'onSend' })
     }
     done()
@@ -159,7 +159,7 @@ function plugin (fastify, options, next) {
       req.onSend.endSpan()
     }
 
-    if (req.isRealSpan) {
+    if (req.rootSpan) {
       req.rootSpan.addLabel(labels.HTTP_RESPONSE_CODE_LABEL_KEY, reply.statusCode) // It is used internally on Stackdriver, but does not show under label for some reason
       req.rootSpan.addLabel(customLabels.STATUS_CODE, reply.statusCode)
       req.rootSpan.endSpan()
@@ -171,6 +171,6 @@ function plugin (fastify, options, next) {
 }
 
 module.exports = fp(plugin, {
-  fastify: '>= 1.0.0',
+  fastify: '>= 2.0.0',
   name: 'fastify-gcloud-trace'
 })
