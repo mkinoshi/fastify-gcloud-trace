@@ -12,7 +12,7 @@
   "license": "MIT",
   "private": false,
   "engines": {
-    "node": ">=8.0.0"
+    "node": ">=6"
   },
   "bugs": {
     "url": "https://github.com/mkinoshi/fastify-gcloud-trace/issues"
