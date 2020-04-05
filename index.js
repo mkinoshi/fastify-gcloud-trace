@@ -3,6 +3,16 @@ const get = require('lodash.get')
 
 const UNSAMPLED_ROOT = 'UNSAMPLED'
 
+const labels = {
+  HTTP_METHOD_LABEL_KEY: '/http/method',
+  HTTP_RESPONSE_CODE_LABEL_KEY: '/http/status_code',
+  HTTP_SOURCE_IP: '/http/source/ip'
+}
+
+const customLabels = {
+  STATUS_CODE: 'status_code'
+}
+
 function isRealSpan (span) {
   return get(span, 'type', UNSAMPLED_ROOT) !== UNSAMPLED_ROOT
 }
@@ -45,9 +55,13 @@ function plugin (fastify, options, next) {
         done()
         return
       }
+
       trace.runInRootSpan(rootSpanOption, span => {
         if (isRealSpan(span)) {
           req.rootSpan = span
+          req.rootSpan.addLabel(labels.HTTP_METHOD_LABEL_KEY, rootSpanOption.method)
+          req.rootSpan.addLabel(labels.HTTP_SOURCE_IP, req.ip)
+
           req.isRealSpan = true
           req.onRequestSpan = req.rootSpan.createChildSpan({ name: 'onRequest' })
         }
@@ -146,6 +160,8 @@ function plugin (fastify, options, next) {
     }
 
     if (req.isRealSpan) {
+      req.rootSpan.addLabel(labels.HTTP_RESPONSE_CODE_LABEL_KEY, reply.statusCode) // It is used internally on Stackdriver, but does not show under label for some reason
+      req.rootSpan.addLabel(customLabels.STATUS_CODE, reply.statusCode)
       req.rootSpan.endSpan()
     }
     done()
