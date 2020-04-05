@@ -33,6 +33,7 @@
   "dependencies": {
     "@google-cloud/trace-agent": "^4.2.5",
     "fastify-plugin": "^1.6.1",
+    "fastify-url-data": "^2.4.0",
     "lodash.get": "^4.4.2"
   },
   "devDependencies": {
