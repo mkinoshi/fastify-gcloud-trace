@@ -12,17 +12,15 @@
   "license": "MIT",
   "private": false,
   "engines": {
-    "node": ">=6"
+    "node": ">=8"
   },
   "bugs": {
     "url": "https://github.com/mkinoshi/fastify-gcloud-trace/issues"
   },
   "homepage": "https://github.com/mkinoshi/fastify-gcloud-trace#readme",
   "scripts": {
-    "test": "tap 'test/**/*.js'",
-    "test-ci": "tap --cov 'test/**/*.js'",
-    "lint": "standard",
-    "lint-ci": "standard"
+    "test": "tap --cov 'test/**/*.js'",
+    "lint": "standard"
   },
   "dependencies": {
     "@google-cloud/trace-agent": "^4.2.5",
@@ -31,7 +29,6 @@
   },
   "devDependencies": {
     "rewire": "^5.0.0",
-    "standard": "^14.3.3",
-    "tap": "^14.10.7"
+    "standard": "^14.3.3"
   }
 }
