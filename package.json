@@ -1,7 +1,6 @@
 {
   "name": "fastify-gcloud-trace",
-  "version": "1.0.3",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Google Cloud Trace API Connector for Fastify",
   "main": "index.js",
   "author": "Makoto Kinoshita",
@@ -37,7 +36,10 @@
     "lodash.get": "^4.4.2"
   },
   "devDependencies": {
+    "fastify": "^2.13.0",
+    "request": "^2.88.2",
     "rewire": "^5.0.0",
+    "split2": "^3.1.1",
     "standard": "^14.3.3",
     "tap": "^14.10.7"
   }
