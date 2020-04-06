@@ -36,6 +36,7 @@
     "lodash.get": "^4.4.2"
   },
   "devDependencies": {
+    "fastify": "^2.13.0",
     "request": "^2.88.2",
     "rewire": "^5.0.0",
     "split2": "^3.1.1",
