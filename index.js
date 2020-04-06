@@ -31,31 +31,39 @@ function buildRootOption (req, tracePluginOptions) {
   }
 }
 
-function isInvalidRootOption (options) {
+function isInvalidRootOption (options, reply) {
   if (!options.url || typeof options.url !== 'string') {
-    console.warn('The url that is passed to rootSpanOption is not string')
+    reply.log.error('The url that is passed to rootSpanOption is not string')
     return true
   }
 
   if (!options.method || typeof options.method !== 'string') {
-    console.warn('The method that is passed to rootSpanOption is not string')
+    reply.log.error('The method that is passed to rootSpanOption is not string')
     return true
   }
 
   return false
 }
 
+function startTracer (traceApiOptions) {
+  let tracer
+  try {
+    tracer = require('@google-cloud/trace-agent').start(traceApiOptions || {})
+  } catch {
+    tracer = require('@google-cloud/trace-agent').get(traceApiOptions || {})
+  }
+  return tracer
+}
+
 function plugin (fastify, options, next) {
   const { traceApiOptions, tracePluginOptions = { enabled: true } } = options
-  const trace = tracePluginOptions.enabled
-    ? require('@google-cloud/trace-agent').start(traceApiOptions || {})
-    : null
+  const trace = tracePluginOptions.enabled ? startTracer(traceApiOptions || {}) : null
 
   fastify.decorateRequest('rootSpan', '')
   fastify.addHook('onRequest', (req, reply, done) => {
     if (trace) {
       const rootSpanOption = buildRootOption(req, tracePluginOptions || {})
-      if (isInvalidRootOption(rootSpanOption)) {
+      if (isInvalidRootOption(rootSpanOption, reply)) {
         done()
         return
       }

@@ -1,10 +1,11 @@
 const t = require('tap')
 const rewire = require('rewire')
+const split = require('split2')
+const request = require('request')
+const Fastify = require('fastify')
 const gtrace = rewire('../')
 
 const isRealSpan = gtrace.__get__('isRealSpan')
-const buildRootOption = gtrace.__get__('buildRootOption')
-const isInvalidRootOption = gtrace.__get__('isInvalidRootOption')
 
 t.test('isRealSpan()', t => {
   t.equal(isRealSpan({}), false, 'isRealSpan() should return false if span is empty')
@@ -21,128 +22,78 @@ t.test('isRealSpan()', t => {
   t.end()
 })
 
-t.test('buildRootOption() with correct request and no tracePluginOptions', t => {
-  const dummyRequest = {
-    raw: {
-      client: {
-        parser: {
-          incoming: {
-            originalUrl: '/test/123',
-            method: 'GET'
-          }
-        }
-      }
+t.test('When you use http for GET method', t => {
+  const stream = split(JSON.parse)
+  const fastify = Fastify({
+    logger: {
+      level: 'error',
+      stream
     }
-  }
-  t.equal(
-    buildRootOption(dummyRequest, {}).name,
-    '/test/123',
-    'buildRootOption() has url for its name'
-  )
-  t.equal(
-    buildRootOption(dummyRequest, {}).url,
-    '/test/123',
-    'buildRootOption() has url for its url'
-  )
-  t.equal(
-    buildRootOption(dummyRequest, {}).method,
-    'GET',
-    'buildRootOption() has GET for its method'
-  )
-  t.end()
-})
+  })
 
-t.test('buildRootOption() with correct request and tracePluginOptions to override name', t => {
-  const dummyRequest = {
-    raw: {
-      client: {
-        parser: {
-          incoming: {
-            originalUrl: '/test/123',
-            method: 'GET'
-          }
-        }
+  fastify.register(gtrace)
+  fastify.get('/user', (req, reply) => {
+    reply.send({ hello: 'world' })
+  })
+
+  fastify.listen(0, err => {
+    t.error(err)
+    t.tearDown(() => fastify.close())
+
+    request(
+      {
+        method: 'GET',
+        url: `http://0.0.0.0:${fastify.server.address().port}/user`
+      },
+      (err, res) => {
+        t.error(err)
+        t.strictEqual(res.statusCode, 200)
+        t.end()
       }
-    }
-  }
-  const tracePluginOptions = {
-    nameOverride: req => 'test tracer name'
-  }
-  t.equal(
-    buildRootOption(dummyRequest, tracePluginOptions).name,
-    'test tracer name',
-    'buildRootOption() has url for its name'
-  )
-  t.equal(
-    buildRootOption(dummyRequest, tracePluginOptions).url,
-    '/test/123',
-    'buildRootOption() has url for its url'
-  )
-  t.equal(
-    buildRootOption(dummyRequest, tracePluginOptions).method,
-    'GET',
-    'buildRootOption() has GET for its method'
-  )
-  t.end()
+    )
+
+    stream.on('data', log => {
+      t.notMatch(log.msg, 'The url that is passed to rootSpanOption is not string')
+      t.notMatch(log.msg, 'The method that is passed to rootSpanOption is not string')
+    })
+  })
 })
 
-t.test('buildRootOption() with incorrect request and tracePluginOptions to override name', t => {
-  const dummyRequest = {
-    raw: {
-      client: {
-        parser: {
-          incomings: {
-            originalUrl: '/test/123',
-            method: 'GET'
-          }
-        }
+t.test('When you use http for POST method', t => {
+  const stream = split(JSON.parse)
+  const fastify = Fastify({
+    logger: {
+      level: 'error',
+      stream
+    }
+  })
+
+  t.tearDown(() => fastify.close())
+
+  fastify.register(gtrace)
+  fastify.post('/user', (req, reply) => {
+    reply.send({ hello: 'world' })
+  })
+
+  fastify.listen(0, err => {
+    t.error(err)
+    t.tearDown(() => fastify.close())
+
+    request(
+      {
+        method: 'POST',
+        url: `http://0.0.0.0:${fastify.server.address().port}/user`
+      },
+      (err, res) => {
+        t.error(err)
+        t.strictEqual(res.statusCode, 200)
+        t.end()
       }
-    }
-  }
-  const tracePluginOptions = {
-    nameOverride: req => 'test tracer name'
-  }
-  t.equal(
-    buildRootOption(dummyRequest, tracePluginOptions).name,
-    'test tracer name',
-    'buildRootOption() has url for its name'
-  )
-  t.equal(
-    buildRootOption(dummyRequest, tracePluginOptions).url,
-    null,
-    'buildRootOption() has url for its url'
-  )
-  t.equal(
-    buildRootOption(dummyRequest, tracePluginOptions).method,
-    null,
-    'buildRootOption() has GET for its method'
-  )
-  t.end()
-})
+    )
 
-t.test('isInvalidRootOption() when valid option is passed', t => {
-  const option = {
-    url: '/test/123',
-    method: 'GET'
-  }
-  t.equal(isInvalidRootOption(option), false, 'isInvalidRootOption() should return false')
-  t.end()
-})
-
-t.test('isInvalidRootOption() when invalid url option is passed', t => {
-  const option = {
-    url: null,
-    method: 'GET'
-  }
-  t.equal(isInvalidRootOption(option), true, 'isInvalidRootOption() should return true')
-  t.end()
-})
-
-t.test('isInvalidRootOption() when invalid method option is passed', t => {
-  const option = {
-    url: '/test/123',
-    method: { method: 'GET' }
-  }
-  t.equal(isInvalidRootOption(option), true, 'isInvalidRootOption() should return true')
-  t.end()
+    stream.on('data', log => {
+      t.notMatch(log.msg, 'The url that is passed to rootSpanOption is not string')
+      t.notMatch(log.msg, 'The method that is passed to rootSpanOption is not string')
+    })
+  })
 })
