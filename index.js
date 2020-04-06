@@ -1,6 +1,5 @@
 const fp = require('fastify-plugin')
 const get = require('lodash.get')
-
 const UNSAMPLED_ROOT = 'UNSAMPLED'
 
 const labels = {
@@ -18,8 +17,12 @@ function isRealSpan (span) {
 }
 
 function buildRootOption (req, tracePluginOptions) {
-  const url = get(req.raw, 'client.parser.incoming.originalUrl', null)
-  const method = get(req.raw, 'client.parser.incoming.method', null)
+  const urlForHttp = get(req.raw, 'client.parser.incoming.originalUrl', null)
+  const urlForHttp2 = get(req.headers, ':path', null)
+  const url = urlForHttp || urlForHttp2
+  const methodForHttp = get(req.raw, 'client.parser.incoming.method', null)
+  const methodForHttp2 = get(req.headers, ':method', null)
+  const method = methodForHttp || methodForHttp2
 
   return {
     name: tracePluginOptions.nameOverride ? tracePluginOptions.nameOverride(req) : url,
