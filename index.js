@@ -49,7 +49,7 @@ function startTracer (traceApiOptions) {
   let tracer
   try {
     tracer = require('@google-cloud/trace-agent').start(traceApiOptions || {})
-  } catch {
+  } catch (e) {
     tracer = require('@google-cloud/trace-agent').get(traceApiOptions || {})
   }
   return tracer
