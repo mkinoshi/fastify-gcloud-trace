@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2020-04-05
+
+### Changed
+
+- Avoid modifing request objects too much. Now you can access root span under `req.gtrace` property. This is not a backward compatible chage.
+
 ## [1.0.4] - 2020-04-05
 
 ### Added
