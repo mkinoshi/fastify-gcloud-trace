@@ -55,7 +55,7 @@ function startTracer (traceApiOptions) {
   return tracer
 }
 
-function initializeGtrace() {
+function initializeGtrace () {
   return {
     rootSpan: null,
     onRequestSpan: null,
@@ -72,7 +72,7 @@ function plugin (fastify, options, next) {
   const { traceApiOptions, tracePluginOptions = { enabled: true } } = options
   const trace = tracePluginOptions.enabled ? startTracer(traceApiOptions || {}) : null
 
-  const gtrace = initializeGtrace();
+  const gtrace = initializeGtrace()
   fastify.decorateRequest('gtrace', gtrace)
   fastify.addHook('onRequest', (req, reply, done) => {
     if (trace) {
