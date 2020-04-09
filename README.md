@@ -44,12 +44,12 @@ fastify.listen(3000, err => {
 });
 ```
 
-This plugin attaches a Trace object to each request, and the object is accessible as `rootSpan` in a request object. Therefore, you can access the trace instance in your application code, and perform all functionalities defined in the Stackdriver Trace API. For example, you can create a childSpan in the following way. It is important to note that `rootSpan` is only defined when traceAPI generates a "traced" root span, so your application code has to handle the case where `rootSpan` is `null`. You can find the different types of span [here](https://googleapis.dev/nodejs/trace/latest/classes/UntracedRootSpanData.html).
+This plugin attaches a Trace object to each request, and the object is accessible as `rootSpan` in a `request.gtrace` object. Therefore, you can access the trace instance in your application code, and perform all functionalities defined in the Stackdriver Trace API. For example, you can create a childSpan in the following way. It is important to note that `rootSpan` is only defined when traceAPI generates a "traced" root span, so your application code has to handle the case where `rootSpan` is `null`. You can find the different types of span [here](https://googleapis.dev/nodejs/trace/latest/classes/UntracedRootSpanData.html).
 
 ```js
 fastify.get('/foo', (req, reply) => {
-  const span = req.rootSpan
-    ? req.rootSpan.createChildSpan({name: 'Perform Heavy Calculation'})
+  const span = req.gtrace.rootSpan
+    ? req.gtrace.rootSpan.createChildSpan({name: 'Perform Heavy Calculation'})
     : null;
   // Do something
   if (span) {

@@ -55,11 +55,25 @@ function startTracer (traceApiOptions) {
   return tracer
 }
 
+function initializeGtrace () {
+  return {
+    rootSpan: null,
+    onRequestSpan: null,
+    parsingSpan: null,
+    validationSpan: null,
+    handlerSpan: null,
+    serializationSpan: null,
+    onErrorSpan: null,
+    onSendSpan: null
+  }
+}
+
 function plugin (fastify, options, next) {
   const { traceApiOptions, tracePluginOptions = { enabled: true } } = options
   const trace = tracePluginOptions.enabled ? startTracer(traceApiOptions || {}) : null
 
-  fastify.decorateRequest('rootSpan', '')
+  const gtrace = initializeGtrace()
+  fastify.decorateRequest('gtrace', gtrace)
   fastify.addHook('onRequest', (req, reply, done) => {
     if (trace) {
       const rootSpanOption = buildRootOption(req, tracePluginOptions || {})
@@ -70,11 +84,11 @@ function plugin (fastify, options, next) {
 
       trace.runInRootSpan(rootSpanOption, span => {
         if (isRealSpan(span)) {
-          req.rootSpan = span
-          req.rootSpan.addLabel(labels.HTTP_METHOD_LABEL_KEY, rootSpanOption.method)
-          req.rootSpan.addLabel(labels.HTTP_SOURCE_IP, req.ip)
+          req.gtrace.rootSpan = span
+          req.gtrace.rootSpan.addLabel(labels.HTTP_METHOD_LABEL_KEY, rootSpanOption.method)
+          req.gtrace.rootSpan.addLabel(labels.HTTP_SOURCE_IP, req.ip)
 
-          req.onRequestSpan = req.rootSpan.createChildSpan({ name: 'onRequest' })
+          req.gtrace.onRequestSpan = req.gtrace.rootSpan.createChildSpan({ name: 'onRequest' })
         }
         done()
       })
@@ -84,96 +98,96 @@ function plugin (fastify, options, next) {
   })
 
   fastify.addHook('preParsing', (req, reply, done) => {
-    if (req.onRequestSpan) {
-      req.onRequestSpan.endSpan()
+    if (req.gtrace.onRequestSpan) {
+      req.gtrace.onRequestSpan.endSpan()
     }
 
-    if (req.rootSpan) {
-      req.parsing = req.rootSpan.createChildSpan({ name: 'Parsing' })
+    if (req.gtrace.rootSpan) {
+      req.gtrace.parsingSpan = req.gtrace.rootSpan.createChildSpan({ name: 'Parsing' })
     }
     done()
   })
 
   fastify.addHook('preValidation', (req, reply, done) => {
-    if (req.parsing) {
-      req.parsing.endSpan()
+    if (req.gtrace.parsingSpan) {
+      req.gtrace.parsingSpan.endSpan()
     }
 
-    if (req.rootSpan) {
-      req.validation = req.rootSpan.createChildSpan({ name: 'Validation' })
+    if (req.gtrace.rootSpan) {
+      req.gtrace.validationSpan = req.gtrace.rootSpan.createChildSpan({ name: 'Validation' })
     }
     done()
   })
 
   fastify.addHook('preHandler', (req, reply, done) => {
-    if (req.validation) {
-      req.validation.endSpan()
+    if (req.gtrace.validationSpan) {
+      req.gtrace.validationSpan.endSpan()
     }
 
-    if (req.rootSpan) {
-      req.handler = req.rootSpan.createChildSpan({ name: 'Handler' })
+    if (req.gtrace.rootSpan) {
+      req.gtrace.handlerSpan = req.gtrace.rootSpan.createChildSpan({ name: 'Handler' })
     }
     done()
   })
 
   fastify.addHook('preSerialization', (req, reply, payload, done) => {
-    if (req.handler) {
-      req.handler.endSpan()
+    if (req.gtrace.handlerSpan) {
+      req.gtrace.handlerSpan.endSpan()
     }
 
-    if (req.rootSpan) {
-      req.serialization = req.rootSpan.createChildSpan({ name: 'Serialization' })
+    if (req.gtrace.rootSpan) {
+      req.gtrace.serializationSpan = req.gtrace.rootSpan.createChildSpan({ name: 'Serialization' })
     }
     done()
   })
 
   fastify.addHook('onError', (req, reply, error, done) => {
-    if (req.parsing) {
-      req.parsing.endSpan()
+    if (req.gtrace.parsingSpan) {
+      req.gtrace.parsingSpan.endSpan()
     }
 
-    if (req.validation) {
-      req.validation.endSpan()
+    if (req.gtrace.validationSpan) {
+      req.gtrace.validationSpan.endSpan()
     }
 
-    if (req.handler) {
-      req.handler.endSpan()
+    if (req.gtrace.handlerSpan) {
+      req.gtrace.handlerSpan.endSpan()
     }
 
-    if (req.serialization) {
-      req.serialization.endSpan()
+    if (req.gtrace.serializationSpan) {
+      req.gtrace.serializationSpan.endSpan()
     }
 
-    if (req.rootSpan) {
-      req.onError = req.rootSpan.createChildSpan({ name: 'onError' })
+    if (req.gtrace.rootSpan) {
+      req.gtrace.onErrorSpan = req.gtrace.rootSpan.createChildSpan({ name: 'onError' })
     }
     done()
   })
 
   fastify.addHook('onSend', (req, reply, payload, done) => {
-    if (req.onError) {
-      req.onError.endSpan()
+    if (req.gtrace.onErrorSpan) {
+      req.gtrace.onErrorSpan.endSpan()
     }
 
-    if (req.serialization) {
-      req.serialization.endSpan()
+    if (req.gtrace.serializationSpan) {
+      req.gtrace.serializationSpan.endSpan()
     }
 
-    if (req.rootSpan) {
-      req.onSend = req.rootSpan.createChildSpan({ name: 'onSend' })
+    if (req.gtrace.rootSpan) {
+      req.gtrace.onSendSpan = req.gtrace.rootSpan.createChildSpan({ name: 'onSend' })
     }
     done()
   })
 
   fastify.addHook('onResponse', (req, reply, done) => {
-    if (req.onSend) {
-      req.onSend.endSpan()
+    if (req.gtrace.onSendSpan) {
+      req.gtrace.onSendSpan.endSpan()
     }
 
-    if (req.rootSpan) {
-      req.rootSpan.addLabel(labels.HTTP_RESPONSE_CODE_LABEL_KEY, reply.statusCode) // It is used internally on Stackdriver, but does not show under label for some reason
-      req.rootSpan.addLabel(customLabels.STATUS_CODE, reply.statusCode)
-      req.rootSpan.endSpan()
+    if (req.gtrace.rootSpan) {
+      req.gtrace.rootSpan.addLabel(labels.HTTP_RESPONSE_CODE_LABEL_KEY, reply.statusCode) // It is used internally on Stackdriver, but does not show under label for some reason
+      req.gtrace.rootSpan.addLabel(customLabels.STATUS_CODE, reply.statusCode)
+      req.gtrace.rootSpan.endSpan()
     }
     done()
   })
