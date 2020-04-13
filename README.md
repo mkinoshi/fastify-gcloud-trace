@@ -4,6 +4,8 @@ Google Cloud Trace API Connector for Fastify
 
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](http://standardjs.com/) [![Build Status](https://travis-ci.com/mkinoshi/fastify-gcloud-trace.svg?branch=master)](https://travis-ci.org/fastify/fastify-plugin)
 
+**_You can also connect to Stackdriver Tracer using OpenTelemetry API. In order to use OpenTelemetry API, please check out_** [fastify-opentelemetry](https://github.com/mkinoshi/fastify-opentelemetry)
+
 `fastify-gcloud-trace` is a plugin that connects your application with Stackdriver Trace API for [Fastify](https://github.com/fastify/fastify). It is build on top of [Stackdriver Trace](https://github.com/googleapis/cloud-trace-nodejs) package, so you can configure Stackdriver Trace API by passing options to `traceApiOptions`.
 
 This plugin measures how long each event takes in one request, and generates trace results. Here is an example trace result that you can find on Google Cloud Console:
