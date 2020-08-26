@@ -17,11 +17,13 @@ function isRealSpan (span) {
 }
 
 function buildRootOption (req, tracePluginOptions) {
-  const urlForHttp = get(req.raw, 'client.parser.incoming.originalUrl', null)
+  const urlForHttp = get(req.raw, 'client.parser.incoming.url', null)
   const urlForHttp2 = get(req.headers, ':path', null)
-  const url = urlForHttp || urlForHttp2
+  
   const methodForHttp = get(req.raw, 'client.parser.incoming.method', null)
   const methodForHttp2 = get(req.headers, ':method', null)
+  
+  const url = urlForHttp || urlForHttp2
   const method = methodForHttp || methodForHttp2
 
   return {
