@@ -35,12 +35,12 @@ function buildRootOption (req, tracePluginOptions) {
 
 function isInvalidRootOption (options, reply) {
   if (!options.url || typeof options.url !== 'string') {
-    reply.log.error('The url that is passed to rootSpanOption is not string')
+    reply.log.error('The url that is passed to rootSpanOption is not string', options)
     return true
   }
 
   if (!options.method || typeof options.method !== 'string') {
-    reply.log.error('The method that is passed to rootSpanOption is not string')
+    reply.log.error('The method that is passed to rootSpanOption is not string', options)
     return true
   }
 
