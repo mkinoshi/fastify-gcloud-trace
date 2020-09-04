@@ -34,6 +34,8 @@ function buildRootOption (req, tracePluginOptions) {
 }
 
 function isInvalidRootOption (options, reply) {
+  reply.log.info('GCloud Trace Options', options);
+  
   if (!options.url || typeof options.url !== 'string') {
     reply.log.error('The url that is passed to rootSpanOption is not string', options)
     return true
