@@ -33,7 +33,7 @@ function buildRootOption (req, tracePluginOptions) {
   }
 }
 
-function isInvalidRootOption (options, reply) {  
+function isInvalidRootOption (options, reply) {
   if (!options.url || typeof options.url !== 'string') {
     reply.log.error({ options }, 'The url that is passed to rootSpanOption is not string')
     return true
